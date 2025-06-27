@@ -10,45 +10,44 @@ The Q-UDiT is a hybrid generative model based on a U-Net-style Diffusion Transfo
 
 ```mermaid
 graph TD
-    subgraph "Q-UDiT Denoiser Architecture"
+    subgraph "Q-UDiT Denoiser Architecture (depth=4 example)"
         direction TB
 
         subgraph "Input Processing"
-            InputImg(Noisy Image) --> PatchEmbed(Patch + Positional Embedding)
-            Timestep(Timestep t) --> TEmbed(Timestep Embedder)
-            Condition(Class Label y) --> CEmbed(Class Embedder)
-            TEmbed --> Ctx(Context Vector c)
-            CEmbed --> Ctx
+            InputImg(Noisy Image) --> PatchEmbed(Patch + Positional Embedding);
+            Timestep(Timestep t) --> TEmbed(Timestep Embedder);
+            Condition(Class Label y) --> CEmbed(Class Embedder);
+            TEmbed --> Ctx(Context Vector c);
+            CEmbed --> Ctx;
         end
 
-        subgraph "U-Net Backbone"
-            direction LR
-            subgraph "Encoder (Downsampling)"
-                direction TB
-                PatchEmbed --> E1(UDiT Block) --> E2(...)
-            end
-            subgraph "Mid"
-                direction TB
-                E2 --> MidBlock(UDiT Block)
-            end
-            subgraph "Decoder (Upsampling)"
-                direction TB
-                D1_in --> D1{"QuixerBlock<br/>(Quantum Attention)"}
-                D1 --> D2(...)
-            end
+        subgraph "Encoder Path (Downsampling)"
+            PatchEmbed --> E1(UDiT Block);
+            E1 --> E2(UDiT Block);
+        end
+
+        subgraph "Bottleneck"
+            E2 --> MidBlock(UDiT Block);
         end
         
-        MidBlock --> D1_in
-        E2 -- skip connection --> D2
-        E1 -- skip connection --> D_Out(...)
-
-        Ctx -- "Modulates all Blocks" --> E1
-        Ctx -- "..." --> D1
-
-        D_Out --> Final(Final Layer) --> DenoisedImg(Denoised Image)
+        subgraph "Decoder Path (Upsampling)"
+            MidBlock --> D1_in(Upsample + Add);
+            E2 -- skip connection --> D1_in;
+            D1_in --> D1{"QuixerBlock<br/>(Quantum Attention)"};
+            
+            D1 --> D2_in(Upsample + Add);
+            E1 -- skip connection --> D2_in;
+            D2_in --> D2(UDiT Block);
+        end
+        
+        D2 --> Final(Final Layer);
+        Final --> DenoisedImg(Denoised Image);
+        
+        Ctx -- "Modulates all Blocks" --> E1;
+        Ctx -- "..." --> D2;
     end
-
-    style D1 fill:#bbf,stroke:#f00,stroke-width:4px,stroke-dasharray: 5 5
+    
+    style D1 fill:#bbf,stroke:#f00,stroke-width:4px,stroke-dasharray: 5 5;
 ```
 
 ## Scientific Merit and Research Goals
